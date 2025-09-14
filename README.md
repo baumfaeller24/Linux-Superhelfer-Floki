@@ -24,22 +24,22 @@ Gesteuert wird der gesamte Ablauf durch einen zentralen **Orchestrator** (State 
 
 ## 📋 Module
 
-| Modul | Beschreibung |
-|-------|-------------|
-| **DataIngest** | Tickdaten einlesen, normalisieren, Bars erzeugen |
-| **Labeling** | Triple-Barrier Labels (TP/SL/Timeout) |
-| **FeatureEngine** | Technische Indikatoren berechnen |
-| **Splitter** | Walk-Forward, Purged/Embargo CV, Session-Splits |
-| **FreeSearch** | Datengetriebene Musterfindung (Trees, RuleFit) |
-| **DBSearch** | Musterkatalog + Parametertuning |
-| **RLParamTuner** | Reinforcement Learning für Parametrisierung |
-| **Backtester** | Kennzahlen pro Regel |
-| **Validator** | OOS-Kriterien prüfen |
-| **Exporter** | Pine v5, Markdown, CSV |
-| **Reporter** | Charts, Reports |
-| **Orchestrator** | Ablaufsteuerung |
-| **Persistence** | Versionierung, Resume |
-| **GUI** | Buttons + Visualisierung |
+| Modul | Status | Beschreibung |
+|-------|--------|-------------|
+| **DataIngest** | ✅ **Vollständig** | Tickdaten einlesen, normalisieren, Bars erzeugen |
+| **Labeling** | 📋 Geplant | Triple-Barrier Labels (TP/SL/Timeout) |
+| **FeatureEngine** | 📋 Geplant | Technische Indikatoren berechnen |
+| **Splitter** | 📋 Geplant | Walk-Forward, Purged/Embargo CV, Session-Splits |
+| **FreeSearch** | 📋 Geplant | Datengetriebene Musterfindung (Trees, RuleFit) |
+| **DBSearch** | 📋 Geplant | Musterkatalog + Parametertuning |
+| **RLParamTuner** | 📋 Geplant | Reinforcement Learning für Parametrisierung |
+| **Backtester** | 📋 Geplant | Kennzahlen pro Regel |
+| **Validator** | 📋 Geplant | OOS-Kriterien prüfen |
+| **Exporter** | 📋 Geplant | Pine v5, Markdown, CSV |
+| **Reporter** | 📋 Geplant | Charts, Reports |
+| **Orchestrator** | ⚠️ **Basis** | Ablaufsteuerung |
+| **Persistence** | 📋 Geplant | Versionierung, Resume |
+| **GUI** | 📋 Geplant | Buttons + Visualisierung |
 
 ## 🚀 Schnellstart
 
@@ -63,24 +63,49 @@ pip install -r requirements.txt
 ### Erste Schritte
 
 ```bash
-# GUI starten
-python src/gui/main.py
+# Demo mit Beispieldaten ausführen
+python scripts/run_module.py --config configs/ingest_demo.yaml
 
-# Oder direkt über CLI
-python src/orchestrator/main.py --config configs/example_eurusd.yaml
+# Oder mit eigenen Daten
+python scripts/run_module.py --config configs/ingest.yaml
+
+# GUI starten (geplant)
+python src/gui/main.py
 ```
 
 ## 📊 Datenformat
 
 ### Eingabe
-- **Tickdaten**: CSV/Parquet mit Spalten `timestamp`, `bid`, `ask`, `[volume]`
-- **Konfiguration**: YAML/JSON für Run-Parameter
+- **Tickdaten**: CSV mit Spalten `timestamp`, `bid`, `ask`, `[volume]`
+- **Format**: ISO8601 UTC Timestamps
+- **Konfiguration**: YAML für Run-Parameter
 
-### Ausgabe
-- **Regeln**: JSON mit gefundenen Mustern und Parametern
-- **Backtest-Ergebnisse**: CSV mit Trade-Details, JSON mit Kennzahlen
-- **Charts**: PNG-Visualisierungen der Performance
-- **PineScript**: Direkt importierbare Trading-Strategien für TradingView
+### Ausgabe (DataIngest)
+- **Normalisierte Ticks**: `raw_norm.parquet`
+- **Zeit-Bars**: `bars_1m.parquet` (OHLC + Spread-Info)
+- **Tick-Bars**: `bars_100tick.parquet`, `bars_1000tick.parquet`
+- **Qualitätsbericht**: `quality_report.json`
+- **Manifest**: `manifest.json` mit Metadaten und Versionierung
+
+### Erweiterte Bar-Schema
+
+```python
+BAR_COLUMNS = [
+    "symbol",           # z.B. "EURUSD"
+    "frame",            # z.B. "1m", "100t"
+    "t_open_ns",        # Öffnungszeit (Nanosekunden seit Epoch)
+    "t_close_ns",       # Schließzeit (Nanosekunden seit Epoch)
+    "o", "h", "l", "c", # OHLC Preise (Mid/Bid/Ask je nach Basis)
+    "o_bid", "o_ask",   # Eröffnungs-Bid/Ask
+    "c_bid", "c_ask",   # Schluss-Bid/Ask
+    "spread_mean",      # Durchschnittlicher Spread
+    "n_ticks",          # Anzahl Ticks in diesem Bar
+    "v_sum",            # Volumen (falls verfügbar)
+    "tick_first_id",    # ID des ersten Ticks
+    "tick_last_id",     # ID des letzten Ticks
+    "gap_flag"          # 1 wenn Datenlücke erkannt
+]
+```
 
 ## 🎯 Performance-Ziele
 
@@ -93,14 +118,15 @@ python src/orchestrator/main.py --config configs/example_eurusd.yaml
 
 ```
 finpattern-engine/
-├── src/
-│   ├── modules/           # 14 Kernmodule
-│   ├── orchestrator/      # State Machine Controller
-│   ├── gui/              # Streamlit/Dash Interface
-│   └── utils/            # Hilfsfunktionen
+├── core/                 # Neue modulare Struktur
+│   ├── data_ingest/      # ✅ Vollständig implementiert
+│   ├── orchestrator/     # ⚠️ Basis-Implementation
+│   └── [weitere Module]  # 📋 Geplant
+├── src/                  # Legacy-Struktur (wird migriert)
+├── samples/              # ✅ Beispiel-Tickdaten
+├── scripts/              # ✅ Ausführungs-Scripts
 ├── tests/                # Unit- und Integrationstests
 ├── configs/              # YAML-Konfigurationen
-├── data/                 # Beispieldaten
 ├── docs/                 # Dokumentation
 └── runs/                 # Output-Verzeichnis für Läufe
 ```
@@ -117,12 +143,44 @@ pip install -r requirements-dev.txt
 pytest tests/
 
 # Code-Qualität prüfen
-black src/
-flake8 src/
-mypy src/
+black src/ core/
+flake8 src/ core/
+mypy src/ core/
 ```
 
-### Beitragen
+### Governance & Standards
+
+- **Determinismus**: Alle Module verwenden kontrollierte Seeds
+- **Versionierung**: Semantische Versionen für Module und Schemas
+- **Logging**: Strukturierte Logs in `progress.jsonl`
+- **Fehlercodes**: Standardisierte Error-Codes für alle Module
+- **Performance**: Parquet mit Snappy-Kompression, Chunked I/O
+
+### Error-Codes
+
+```python
+MISSING_COLUMN = "MISSING_COLUMN"      # Erforderliche Spalte fehlt
+NEGATIVE_SPREAD = "NEGATIVE_SPREAD"    # Ask < Bid erkannt
+UNSORTED_INPUT = "UNSORTED_INPUT"      # Daten nicht zeitlich sortiert
+TIMEZONE_ERROR = "TIMEZONE_ERROR"      # Zeitzone-Parsing fehlgeschlagen
+IO_ERROR = "IO_ERROR"                  # Datei-I/O Fehler
+GAP_EXCESS = "GAP_EXCESS"              # Zu große Datenlücken
+CONFIG_ERROR = "CONFIG_ERROR"          # Konfigurationsfehler
+```
+
+## 🧪 Testing
+
+Das DataIngest-Modul ist vollständig getestet:
+
+```bash
+# Spezifische Tests für DataIngest
+pytest tests/test_data_ingest.py -v
+
+# Mit Demo-Daten testen
+python scripts/run_module.py --config configs/ingest_demo.yaml
+```
+
+## 🤝 Beitragen
 
 1. Fork des Repositories
 2. Feature-Branch erstellen (`git checkout -b feature/amazing-feature`)
