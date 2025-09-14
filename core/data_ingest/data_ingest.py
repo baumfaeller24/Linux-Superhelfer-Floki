@@ -137,10 +137,11 @@ def run(config: Dict[str, Any]) -> Dict[str, Any]:
 
     # Select input path
     demo = bool(config.get("demo", False))
-    csv_path = pathlib.Path(config["csv"]["path"])
     if demo:
         # relative to this module → samples
         csv_path = (pathlib.Path(__file__).resolve().parents[2] / "samples" / "ticks" / "eurusd_sample.csv")
+    else:
+        csv_path = pathlib.Path(config["csv"]["path"])
 
     symbol = config.get("symbol","EURUSD")
     basis = config.get("price_basis","mid")
